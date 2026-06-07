@@ -9,7 +9,7 @@ let tasks = taskData.tasks.map((task, index) => ({
     priority: task.priority || 'medium',
     createdAt: task.createdAt || new Date(2026, 0, index + 1).toISOString(),
 }));
-let nextId = Math.max(...tasks.map((task) => task.id)) + 1;
+let nextId = tasks.length > 0 ? Math.max(...tasks.map((task) => task.id)) + 1 : 1;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -24,15 +24,50 @@ function isValidTask(task) {
         && (task.priority === undefined || priorities.includes(task.priority));
 }
 
+function isValidTaskUpdate(task) {
+    if (!task || Object.keys(task).length === 0) {
+        return false;
+    }
+
+    if (task.title !== undefined && (typeof task.title !== 'string' || task.title.trim() === '')) {
+        return false;
+    }
+
+    if (task.description !== undefined && (typeof task.description !== 'string' || task.description.trim() === '')) {
+        return false;
+    }
+
+    if (task.completed !== undefined && typeof task.completed !== 'boolean') {
+        return false;
+    }
+
+    if (task.priority !== undefined && !priorities.includes(task.priority)) {
+        return false;
+    }
+
+    return true;
+}
+
+function getTaskId(id) {
+    const taskId = Number(id);
+
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+        return null;
+    }
+
+    return taskId;
+}
+
 app.get('/tasks', (req, res) => {
     let result = [...tasks];
 
-    if (req.query.completed === 'true') {
-        result = result.filter((task) => task.completed === true);
-    }
+    if (req.query.completed !== undefined) {
+        if (req.query.completed !== 'true' && req.query.completed !== 'false') {
+            return res.status(400).json({ message: 'Completed must be true or false' });
+        }
 
-    if (req.query.completed === 'false') {
-        result = result.filter((task) => task.completed === false);
+        const completed = req.query.completed === 'true';
+        result = result.filter((task) => task.completed === completed);
     }
 
     if (req.query.sortBy === 'createdAt') {
@@ -58,7 +93,12 @@ app.get('/tasks/priority/:level', (req, res) => {
 });
 
 app.get('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
+    const id = getTaskId(req.params.id);
+
+    if (!id) {
+        return res.status(400).json({ message: 'Invalid task id' });
+    }
+
     const task = tasks.find((item) => item.id === id);
 
     if (!task) {
@@ -89,39 +129,56 @@ app.post('/tasks', (req, res) => {
 });
 
 app.put('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
+    const id = getTaskId(req.params.id);
+
+    if (!id) {
+        return res.status(400).json({ message: 'Invalid task id' });
+    }
+
     const taskIndex = tasks.findIndex((item) => item.id === id);
 
     if (taskIndex === -1) {
         return res.status(404).json({ message: 'Task not found' });
     }
 
-    if (!isValidTask(req.body)) {
+    if (!isValidTaskUpdate(req.body)) {
         return res.status(400).json({ message: 'Invalid task data' });
     }
 
-    tasks[taskIndex] = {
-        id,
-        title: req.body.title.trim(),
-        description: req.body.description.trim(),
-        completed: req.body.completed,
-        priority: req.body.priority || tasks[taskIndex].priority,
-        createdAt: tasks[taskIndex].createdAt,
-    };
+    if (req.body.title !== undefined) {
+        tasks[taskIndex].title = req.body.title.trim();
+    }
+
+    if (req.body.description !== undefined) {
+        tasks[taskIndex].description = req.body.description.trim();
+    }
+
+    if (req.body.completed !== undefined) {
+        tasks[taskIndex].completed = req.body.completed;
+    }
+
+    if (req.body.priority !== undefined) {
+        tasks[taskIndex].priority = req.body.priority;
+    }
 
     return res.status(200).json(tasks[taskIndex]);
 });
 
 app.delete('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
+    const id = getTaskId(req.params.id);
+
+    if (!id) {
+        return res.status(400).json({ message: 'Invalid task id' });
+    }
+
     const taskIndex = tasks.findIndex((item) => item.id === id);
 
     if (taskIndex === -1) {
         return res.status(404).json({ message: 'Task not found' });
     }
 
-    const deletedTask = tasks.splice(taskIndex, 1);
-    return res.status(200).json(deletedTask[0]);
+    tasks.splice(taskIndex, 1);
+    return res.status(204).send();
 });
 
 app.use((req, res) => {

@@ -57,6 +57,12 @@ tap.test("GET /tasks filters by completed status", async (t) => {
   t.end();
 });
 
+tap.test("GET /tasks with invalid completed filter", async (t) => {
+  const response = await server.get("/tasks?completed=yes");
+  t.equal(response.status, 400);
+  t.end();
+});
+
 tap.test("GET /tasks sorts by created date", async (t) => {
   const response = await server.get("/tasks?sortBy=createdAt&order=desc");
   t.equal(response.status, 200);
@@ -103,6 +109,12 @@ tap.test("GET /tasks/:id with invalid id", async (t) => {
   t.end();
 });
 
+tap.test("GET /tasks/:id with malformed id", async (t) => {
+  const response = await server.get("/tasks/abc");
+  t.equal(response.status, 400);
+  t.end();
+});
+
 tap.test("PUT /tasks/:id", async (t) => {
   const updatedTask = {
     title: "Updated Task",
@@ -116,6 +128,13 @@ tap.test("PUT /tasks/:id", async (t) => {
   t.end();
 });
 
+tap.test("PUT /tasks/:id allows partial update", async (t) => {
+  const response = await server.put("/tasks/2").send({ completed: false });
+  t.equal(response.status, 200);
+  t.equal(response.body.completed, false);
+  t.end();
+});
+
 tap.test("PUT /tasks/:id with invalid id", async (t) => {
   const updatedTask = {
     title: "Updated Task",
@@ -124,6 +143,12 @@ tap.test("PUT /tasks/:id with invalid id", async (t) => {
   };
   const response = await server.put("/tasks/999").send(updatedTask);
   t.equal(response.status, 404);
+  t.end();
+});
+
+tap.test("PUT /tasks/:id with malformed id", async (t) => {
+  const response = await server.put("/tasks/abc").send({ completed: true });
+  t.equal(response.status, 400);
   t.end();
 });
 
@@ -151,7 +176,7 @@ tap.test("PUT /tasks/:id with empty description", async (t) => {
 
 tap.test("DELETE /tasks/:id", async (t) => {
   const response = await server.delete("/tasks/1");
-  t.equal(response.status, 200);
+  t.equal(response.status, 204);
   t.end();
 });
 
@@ -161,3 +186,8 @@ tap.test("DELETE /tasks/:id with invalid id", async (t) => {
   t.end();
 });
 
+tap.test("DELETE /tasks/:id with malformed id", async (t) => {
+  const response = await server.delete("/tasks/abc");
+  t.equal(response.status, 400);
+  t.end();
+});

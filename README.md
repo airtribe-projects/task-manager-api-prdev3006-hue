@@ -97,6 +97,8 @@ curl http://localhost:3000/tasks/1
 
 If the task does not exist, the API returns `404`.
 
+If the ID is not a valid number, the API returns `400`.
+
 ### Create a Task
 
 ```http
@@ -130,6 +132,8 @@ If `priority` is not provided, it defaults to `medium`.
 PUT /tasks/:id
 ```
 
+You can send the full task object or only the fields you want to update.
+
 Body:
 
 ```json
@@ -151,6 +155,8 @@ curl -X PUT http://localhost:3000/tasks/1 ^
 
 If the task does not exist, the API returns `404`.
 
+If the ID is not a valid number, the API returns `400`.
+
 ### Delete a Task
 
 ```http
@@ -163,7 +169,11 @@ Example:
 curl -X DELETE http://localhost:3000/tasks/1
 ```
 
+Successful deletion returns `204 No Content`.
+
 If the task does not exist, the API returns `404`.
+
+If the ID is not a valid number, the API returns `400`.
 
 ### Get Tasks by Priority
 
@@ -191,6 +201,8 @@ Invalid priority levels return `400`.
 - `description` is required and cannot be empty.
 - `completed` must be a boolean value: `true` or `false`.
 - `priority` must be `low`, `medium`, or `high` if provided.
+- `completed` query filter must be `true` or `false` if provided.
+- Task IDs must be valid positive numbers.
 
 Invalid input returns `400 Bad Request`.
 
